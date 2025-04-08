@@ -8,8 +8,7 @@ ctk.set_default_color_theme("blue")
 
 def extrair_mensagem(imagem_caminho):
     try:
-        img = Image.open(imagem_caminho)
-        img = img.convert("RGB")
+        img = Image.open(imagem_caminho).convert("RGB")
         pixels = img.load()
 
         largura, altura = img.size
@@ -19,15 +18,23 @@ def extrair_mensagem(imagem_caminho):
                 _, _, b = pixels[x, y]
                 bits += str(b & 1)
 
-        # Convertendo os bits em bytes
+        # Lê os primeiros 32 bits (4 bytes) como tamanho
+        tamanho_bytes_bin = bits[:32]
+        tamanho = int(tamanho_bytes_bin, 2)
+
+        # Lê os bits restantes da mensagem
+        mensagem_bits = bits[32:32 + (tamanho * 8)]
+
+        if len(mensagem_bits) < tamanho * 8:
+            raise ValueError("Dados insuficientes para extrair a mensagem completa.")
+
+        # Converte bits em bytes
         bytes_extraidos = bytearray()
-        for i in range(0, len(bits), 8):
-            byte_bin = bits[i:i+8]
-            if byte_bin == '00000000':  # delimitador de fim
-                break
+        for i in range(0, len(mensagem_bits), 8):
+            byte_bin = mensagem_bits[i:i+8]
             bytes_extraidos.append(int(byte_bin, 2))
 
-        # Tenta descompactar com zlib
+        # Descompacta com zlib
         mensagem = zlib.decompress(bytes_extraidos).decode('utf-8')
         return mensagem
 
